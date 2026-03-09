@@ -17,6 +17,7 @@ import dataclasses
 import logging
 import time
 from contextlib import nullcontext
+from pathlib import Path
 from pprint import pformat
 from typing import Any
 
@@ -169,6 +170,13 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     """
     cfg.validate()
 
+    # Ensure output directory exists early so file logging can be initialized safely.
+    log_file = None
+    if cfg.output_dir is not None:
+        cfg.output_dir = Path(cfg.output_dir)
+        cfg.output_dir.mkdir(parents=True, exist_ok=True)
+        log_file = cfg.output_dir / "train.log"
+
     # Create Accelerator if not provided
     # It will automatically detect if running in distributed mode or single-process mode
     # We set step_scheduler_with_optimizer=False to prevent accelerate from adjusting the lr_scheduler steps based on the num_processes
@@ -186,7 +194,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             cpu=force_cpu,
         )
 
-    init_logging(accelerator=accelerator)
+    init_logging(log_file=log_file, accelerator=accelerator)
 
     # Determine if this is the main process (for logging and checkpointing)
     # When using accelerate, only the main process should log to avoid duplicate outputs

@@ -1,3 +1,9 @@
+> [!NOTE]
+> This is a fork of `huggingface/lerobot` used for LIBERO and ACT experimentation. Fork-specific additions include:
+> - Per-run local training logs written to `train.log` in the output directory.
+> - Experiment reports stored under `reports/` (for example, LIBERO-10 evaluation summaries).
+> - Small documentation updates that describe this fork's workflow.
+
 <p align="center">
   <img alt="LeRobot, Hugging Face Robotics Library" src="./media/readme/lerobot-logo-thumbnail.png" width="100%">
 </p>
