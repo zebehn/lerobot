@@ -8,8 +8,8 @@
 
 | Date | Experiment | Major Results | Report |
 | --- | --- | --- | --- |
-| 2026-03-05 | ACT baseline (LIBERO-10 eval) | Success rate: 28.0% (50 eps/task, 500 total) | `reports/libero_10_eval_2026-03-05.md` |
-| 2026-03-09 | ACT task-conditioned fine-tune (20k) | Success rate: 36.0% (50 eps/task, 500 total) | `reports/libero_10_act_taskcond_20k_2026-03-09.md` |
+| 2026-03-05 | ACT baseline (LIBERO-10 eval) | Success rate: 28.0% (50 eps/task, 500 total) | [reports/libero_10_eval_2026-03-05.md](reports/libero_10_eval_2026-03-05.md) |
+| 2026-03-09 | ACT task-conditioned fine-tune (20k) | Success rate: 36.0% (50 eps/task, 500 total) | [reports/libero_10_act_taskcond_20k_2026-03-09.md](reports/libero_10_act_taskcond_20k_2026-03-09.md) |
 
 <p align="center">
   <img alt="LeRobot, Hugging Face Robotics Library" src="./media/readme/lerobot-logo-thumbnail.png" width="100%">
