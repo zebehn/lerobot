@@ -76,6 +76,7 @@ from .policy_robot_bridge import (
 )
 from .rename_processor import RenameObservationsProcessorStep
 from .tokenizer_processor import ActionTokenizerProcessorStep, TokenizerProcessorStep
+from .task_conditioning_processor import TaskIndexToEnvStateStep
 
 __all__ = [
     "ActionProcessorStep",
@@ -125,6 +126,7 @@ __all__ = [
     "Torch2NumpyActionProcessorStep",
     "RobotActionToPolicyActionProcessorStep",
     "PolicyActionToRobotActionProcessorStep",
+    "TaskIndexToEnvStateStep",
     "transition_to_batch",
     "TransitionKey",
     "TruncatedProcessorStep",

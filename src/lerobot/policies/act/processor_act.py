@@ -25,6 +25,7 @@ from lerobot.processor import (
     PolicyAction,
     PolicyProcessorPipeline,
     RenameObservationsProcessorStep,
+    TaskIndexToEnvStateStep,
     UnnormalizerProcessorStep,
 )
 from lerobot.processor.converters import policy_action_to_transition, transition_to_policy_action
@@ -56,14 +57,22 @@ def make_act_pre_post_processors(
     input_steps = [
         RenameObservationsProcessorStep(rename_map={}),
         AddBatchDimensionProcessorStep(),
-        DeviceProcessorStep(device=config.device),
-        NormalizerProcessorStep(
-            features={**config.input_features, **config.output_features},
-            norm_map=config.normalization_mapping,
-            stats=dataset_stats,
-            device=config.device,
-        ),
     ]
+    if getattr(config, "task_conditioning", False):
+        if getattr(config, "task_conditioning_num_tasks", None) is None:
+            raise ValueError("task_conditioning_num_tasks must be set when task_conditioning is enabled.")
+        input_steps.append(TaskIndexToEnvStateStep(num_tasks=config.task_conditioning_num_tasks))
+    input_steps.extend(
+        [
+            DeviceProcessorStep(device=config.device),
+            NormalizerProcessorStep(
+                features={**config.input_features, **config.output_features},
+                norm_map=config.normalization_mapping,
+                stats=dataset_stats,
+                device=config.device,
+            ),
+        ]
+    )
     output_steps = [
         UnnormalizerProcessorStep(
             features=config.output_features, norm_map=config.normalization_mapping, stats=dataset_stats

@@ -30,6 +30,7 @@ from libero.libero import benchmark, get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
 
 from lerobot.processor import RobotObservation
+from lerobot.utils.constants import OBS_ENV_STATE
 
 
 def _parse_camera_names(camera_name: str | Sequence[str]) -> list[str]:
@@ -116,9 +117,17 @@ class LiberoEnv(gym.Env):
         camera_name_mapping: dict[str, str] | None = None,
         num_steps_wait: int = 10,
         control_mode: str = "relative",
+        task_conditioning: bool = False,
+        task_conditioning_num_tasks: int | None = None,
+        task_conditioning_task_map: dict[str, int] | None = None,
     ):
         super().__init__()
         self.task_id = task_id
+        self.task_conditioning = task_conditioning
+        self.task_conditioning_num_tasks = (
+            task_conditioning_num_tasks if task_conditioning_num_tasks is not None else len(task_suite.tasks)
+        )
+        self.task_conditioning_task_map = task_conditioning_task_map
         self.obs_type = obs_type
         self.render_mode = render_mode
         self.observation_width = observation_width
@@ -275,8 +284,12 @@ class LiberoEnv(gym.Env):
                 },
             },
         }
+        env_state = self._get_task_env_state()
         if self.obs_type == "pixels":
-            return {"pixels": images.copy()}
+            obs_pixels = {"pixels": images.copy()}
+            if env_state is not None:
+                obs_pixels[OBS_ENV_STATE] = env_state
+            return obs_pixels
 
         if self.obs_type == "pixels_agent_pos":
             # Validate required fields are present
@@ -286,12 +299,33 @@ class LiberoEnv(gym.Env):
                     f"Got eef_pos={eef_pos is not None}, eef_quat={eef_quat is not None}, "
                     f"gripper_qpos={gripper_qpos is not None}"
                 )
+            if env_state is not None:
+                obs[OBS_ENV_STATE] = env_state
             return obs
 
         raise NotImplementedError(
             f"The observation type '{self.obs_type}' is not supported in LiberoEnv. "
             "Please switch to an image-based obs_type (e.g. 'pixels', 'pixels_agent_pos')."
         )
+
+    def _get_task_env_state(self) -> np.ndarray | None:
+        if not self.task_conditioning:
+            return None
+        task_index = self.task_id
+        if self.task_conditioning_task_map is not None:
+            if self.task_description not in self.task_conditioning_task_map:
+                raise ValueError(
+                    f"task_description '{self.task_description}' not found in task_conditioning_task_map"
+                )
+            task_index = int(self.task_conditioning_task_map[self.task_description])
+
+        if task_index >= self.task_conditioning_num_tasks:
+            raise ValueError(
+                f"task_index {task_index} exceeds task_conditioning_num_tasks={self.task_conditioning_num_tasks}"
+            )
+        env_state = np.zeros((self.task_conditioning_num_tasks,), dtype=np.float32)
+        env_state[task_index] = 1.0
+        return env_state
 
     def reset(self, seed=None, **kwargs):
         super().reset(seed=seed)

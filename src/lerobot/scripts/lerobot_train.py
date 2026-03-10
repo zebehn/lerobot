@@ -21,6 +21,7 @@ from pathlib import Path
 from pprint import pformat
 from typing import Any
 
+import numpy as np
 import torch
 from accelerate import Accelerator
 from termcolor import colored
@@ -42,6 +43,7 @@ from lerobot.scripts.lerobot_eval import eval_policy_all
 from lerobot.utils.import_utils import register_third_party_plugins
 from lerobot.utils.logging_utils import AverageMeter, MetricsTracker
 from lerobot.utils.random_utils import set_seed
+from lerobot.utils.constants import OBS_ENV_STATE
 from lerobot.utils.train_utils import (
     get_step_checkpoint_dir,
     get_step_identifier,
@@ -151,6 +153,42 @@ def update_policy(
     return train_metrics, output_dict
 
 
+def _maybe_enable_task_conditioning(cfg: TrainPipelineConfig, dataset) -> None:
+    if not hasattr(cfg.policy, "task_conditioning") or not getattr(cfg.policy, "task_conditioning"):
+        return
+
+    num_tasks = getattr(cfg.policy, "task_conditioning_num_tasks", None)
+    if num_tasks is None:
+        if dataset.meta.tasks is not None:
+            num_tasks = len(dataset.meta.tasks)
+        else:
+            num_tasks = dataset.meta.info.get("total_tasks")
+        if num_tasks is None:
+            raise ValueError("Unable to infer num_tasks for task conditioning.")
+        cfg.policy.task_conditioning_num_tasks = int(num_tasks)
+    else:
+        num_tasks = int(num_tasks)
+
+    features = dataset.meta.info["features"]
+    if OBS_ENV_STATE not in features:
+        features[OBS_ENV_STATE] = {
+            "dtype": "float32",
+            "shape": (num_tasks,),
+            "names": [f"task_{i}" for i in range(num_tasks)],
+        }
+
+    if dataset.meta.stats is not None and OBS_ENV_STATE not in dataset.meta.stats:
+        dataset.meta.stats[OBS_ENV_STATE] = {
+            "mean": np.zeros((num_tasks,), dtype=np.float32),
+            "std": np.ones((num_tasks,), dtype=np.float32),
+        }
+
+    if dataset.meta.tasks is not None:
+        cfg.policy.task_conditioning_task_map = {
+            task: int(row.task_index) for task, row in dataset.meta.tasks.iterrows()
+        }
+
+
 @parser.wrap()
 def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     """
@@ -230,6 +268,8 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     # Now all other processes can safely load the dataset
     if not is_main_process:
         dataset = make_dataset(cfg)
+
+    _maybe_enable_task_conditioning(cfg, dataset)
 
     # Create environment used for evaluating checkpoints during training on simulation data.
     # On real-world data, no need to create an environment as evaluations are done outside train.py,

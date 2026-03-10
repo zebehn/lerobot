@@ -515,6 +515,16 @@ def eval_main(cfg: EvalPipelineConfig):
 
     logging.info(colored("Output dir:", "yellow", attrs=["bold"]) + f" {cfg.output_dir}")
 
+    # If the policy uses task conditioning, propagate settings to the environment when possible.
+    if getattr(cfg.policy, "task_conditioning", False) and hasattr(cfg.env, "task_conditioning"):
+        cfg.env.task_conditioning = True
+        num_tasks = getattr(cfg.policy, "task_conditioning_num_tasks", None)
+        if num_tasks is not None:
+            cfg.env.task_conditioning_num_tasks = num_tasks
+        task_map = getattr(cfg.policy, "task_conditioning_task_map", None)
+        if task_map is not None:
+            cfg.env.task_conditioning_task_map = task_map
+
     logging.info("Making environment.")
     envs = make_env(
         cfg.env,

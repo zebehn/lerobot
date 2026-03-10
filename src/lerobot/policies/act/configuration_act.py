@@ -85,6 +85,11 @@ class ACTConfig(PreTrainedConfig):
     n_obs_steps: int = 1
     chunk_size: int = 100
     n_action_steps: int = 100
+    # Task conditioning.
+    # When enabled, the policy expects `observation.environment_state` as a one-hot task id.
+    task_conditioning: bool = False
+    task_conditioning_num_tasks: int | None = None
+    task_conditioning_task_map: dict[str, int] | None = None
 
     normalization_mapping: dict[str, NormalizationMode] = field(
         default_factory=lambda: {

@@ -262,6 +262,9 @@ class HILSerlRobotEnvConfig(EnvConfig):
 class LiberoEnv(EnvConfig):
     task: str = "libero_10"  # can also choose libero_spatial, libero_object, etc.
     task_ids: list[int] | None = None
+    task_conditioning: bool = False
+    task_conditioning_num_tasks: int | None = None
+    task_conditioning_task_map: dict[str, int] | None = None
     fps: int = 30
     episode_length: int | None = None
     obs_type: str = "pixels_agent_pos"
@@ -338,11 +341,23 @@ class LiberoEnv(EnvConfig):
         else:
             raise ValueError(f"Unsupported obs_type: {self.obs_type}")
 
+        if self.task_conditioning and self.task_conditioning_num_tasks is not None:
+            self.features[OBS_ENV_STATE] = PolicyFeature(
+                type=FeatureType.ENV,
+                shape=(self.task_conditioning_num_tasks,),
+            )
+
     @property
     def gym_kwargs(self) -> dict:
         kwargs: dict[str, Any] = {"obs_type": self.obs_type, "render_mode": self.render_mode}
         if self.task_ids is not None:
             kwargs["task_ids"] = self.task_ids
+        if self.task_conditioning:
+            kwargs["task_conditioning"] = True
+            if self.task_conditioning_num_tasks is not None:
+                kwargs["task_conditioning_num_tasks"] = self.task_conditioning_num_tasks
+            if self.task_conditioning_task_map is not None:
+                kwargs["task_conditioning_task_map"] = self.task_conditioning_task_map
         return kwargs
 
 
